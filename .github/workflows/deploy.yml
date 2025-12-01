@@ -31,6 +31,16 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
+      # ----------------------------------------------------------------
+      # NEW: Set up QEMU to emulate ARM64 processors
+      # This allows the Intel GitHub runner to build for your ARM Cluster
+      # ----------------------------------------------------------------
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Azure Login
         uses: azure/login@v1
         with:
@@ -39,16 +49,19 @@ jobs:
       - name: Login to ACR
         run: az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}
 
+      # ----------------------------------------------------------------
+      # UPDATED: Build specifically for 'linux/arm64'
+      # ----------------------------------------------------------------
       - name: Build and Push Docker Image
-        run: |
-          # Create a specific tag based on the GitHub commit SHA
-          IMAGE_TAG=${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          
-          # Build the image
-          docker build -t $IMAGE_TAG .
-          
-          # Push to Azure
-          docker push $IMAGE_TAG
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          # This line forces the image to be compatible with your Azure Node
+          platforms: linux/arm64
+          tags: |
+            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
 
   deploy-to-aks:
     needs: build-and-push
