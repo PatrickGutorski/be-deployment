@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: testapp
+  template:
+    metadata:
+      labels:
+        app: testapp
+    spec:
+      containers:
+        - name: testapp
+          # This is a placeholder; GitHub Actions will replace it with the real image
+          image: REPLACE_ME
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: testapp-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: testapp
+  ports:
+    - port: 80
+      targetPort: 8080

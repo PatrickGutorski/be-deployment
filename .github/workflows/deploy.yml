@@ -1,0 +1,81 @@
+name: Build and Deploy to AKS
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  # ---------------------------------------------------------
+  # UPDATE THESE VARIABLES
+  # ---------------------------------------------------------
+  # Your Registry Name (e.g. testappregistry2024) - NO ".azurecr.io"
+  AZURE_CONTAINER_REGISTRY: "myregistry123pg"
+  
+  # Your Cluster Name (e.g. my-aks-cluster)
+  CLUSTER_NAME: "my-aks-cluster"
+  
+  # Your Resource Group Name (e.g. my-app-rg)
+  RESOURCE_GROUP: "my-app-rg"
+  
+  # The name you want for your image
+  IMAGE_NAME: "testapp"
+  
+  # The namespace in Kubernetes (default is usually fine)
+  NAMESPACE: "default"
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        run: az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}
+
+      - name: Build and Push Docker Image
+        run: |
+          # Create a specific tag based on the GitHub commit SHA
+          IMAGE_TAG=${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          
+          # Build the image
+          docker build -t $IMAGE_TAG .
+          
+          # Push to Azure
+          docker push $IMAGE_TAG
+
+  deploy-to-aks:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set AKS Context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ env.RESOURCE_GROUP }}
+          cluster-name: ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy to Kubernetes
+        run: |
+          # 1. Apply the configuration (Deployment & Service)
+          kubectl apply -f k8s/deployment.yaml --namespace ${{ env.NAMESPACE }}
+          
+          # 2. Force update the image to the one we just built
+          #    (This connects the deployment 'testapp' to the specific image version)
+          kubectl set image deployment/testapp testapp=${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} --namespace ${{ env.NAMESPACE }}
+          
+          # 3. Verify it worked
+          kubectl rollout status deployment/testapp --namespace ${{ env.NAMESPACE }}
