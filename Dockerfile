@@ -2,7 +2,7 @@
 # STAGE 1: Build the application
 # -----------------------------------------------------------------------------
 # Use an official OpenJDK image with the JDK (change '17' to your Java version)
-FROM eclipse-temurin:25-jdk-jammy AS builder
+FROM eclipse-temurin:17-jdk-jammy AS builder
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -28,7 +28,7 @@ RUN ./gradlew bootJar --no-daemon
 # STAGE 2: Create the final run image
 # -----------------------------------------------------------------------------
 # Use a smaller JRE image for production (no compiler, smaller size)
-FROM eclipse-temurin:25-jre-jammy
+FROM eclipse-temurin:17-jre-jammy
 
 WORKDIR /app
 
