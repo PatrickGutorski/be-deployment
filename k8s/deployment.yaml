@@ -24,7 +24,7 @@ kind: Service
 metadata:
   name: testapp-service
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: testapp
   ports:
