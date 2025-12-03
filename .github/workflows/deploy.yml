@@ -19,7 +19,7 @@ env:
   RESOURCE_GROUP: "my-app-rg"
   
   # The name you want for your image
-  IMAGE_NAME: "testapp"
+  IMAGE_NAME: "testapp-backend"
   
   # The namespace in Kubernetes (default is usually fine)
   NAMESPACE: "default"
@@ -30,13 +30,6 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
-
-      # ----------------------------------------------------------------
-      # NEW: Set up QEMU to emulate ARM64 processors
-      # This allows the Intel GitHub runner to build for your ARM Cluster
-      # ----------------------------------------------------------------
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -50,7 +43,7 @@ jobs:
         run: az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}
 
       # ----------------------------------------------------------------
-      # UPDATED: Build specifically for 'linux/arm64'
+      # UPDATED: Build specifically for 'linux/amd64'
       # ----------------------------------------------------------------
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
@@ -58,7 +51,7 @@ jobs:
           context: .
           push: true
           # This line forces the image to be compatible with your Azure Node
-          platforms: linux/arm64
+          platforms: linux/amd64
           tags: |
             ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
@@ -87,8 +80,8 @@ jobs:
           kubectl apply -f k8s/deployment.yaml --namespace ${{ env.NAMESPACE }}
           
           # 2. Force update the image to the one we just built
-          #    (This connects the deployment 'testapp' to the specific image version)
-          kubectl set image deployment/testapp testapp=${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} --namespace ${{ env.NAMESPACE }}
+          #    (This connects the deployment 'testapp-backend' to the specific image version)
+          kubectl set image deployment/testapp-backend testapp-backend=${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} --namespace ${{ env.NAMESPACE }}
           
           # 3. Verify it worked
-          kubectl rollout status deployment/testapp --namespace ${{ env.NAMESPACE }}
+          kubectl rollout status deployment/testapp-backend --namespace ${{ env.NAMESPACE }}

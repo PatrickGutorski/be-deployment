@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: testapp
+  name: testapp-backend
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: testapp
+      app: testapp-backend
   template:
     metadata:
       labels:
-        app: testapp
+        app: testapp-backend
     spec:
       containers:
-        - name: testapp
+        - name: testapp-backend
           # This is a placeholder; GitHub Actions will replace it with the real image
           image: REPLACE_ME
           ports:
@@ -22,11 +22,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: testapp-service
+  name: testapp-backend-service
 spec:
   type: ClusterIP
   selector:
-    app: testapp
+    app: testapp-backend
   ports:
     - port: 80
       targetPort: 8080
